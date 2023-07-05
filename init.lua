@@ -15,8 +15,5 @@ vim.g.mapleader = ','
 -- enable x clipboard integration
 vim.opt.clipboard = "unnamedplus"
 
--- Configure plugins
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-
 -- Keybindings
 require('keybindings').register()
