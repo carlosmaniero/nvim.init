@@ -9,18 +9,11 @@ vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
 vim.opt.colorcolumn = "80"
 
--- Keybindings
+-- Leader key
 vim.g.mapleader = ','
-
-local misc_buffers = require('misc.buffers')
 
 -- enable x clipboard integration
 vim.opt.clipboard = "unnamedplus"
-
-vim.keymap.set('n', 'bn', function() vim.cmd("bn") end)
-vim.keymap.set('n', 'bp', function() vim.cmd("bp") end)
-vim.keymap.set('n', 'bd', function() vim.cmd("bd") end)
-vim.keymap.set('n', 'bc', misc_buffers.buffer_choose)
 
 -- Configure plugins
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -37,3 +30,6 @@ if not vim.loop.fs_stat(lazypath) then
 end
 
 vim.opt.rtp:prepend(lazypath)
+
+-- Keybindings
+require('keybindings').register()
