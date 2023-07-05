@@ -16,9 +16,14 @@ function register_bash_like_navigation_on_command_prompt()
   vim.api.nvim_set_keymap('c', '<C-P>', '<Up>',    {noremap = true})
 end
 
+function register_system_keybindings()
+  vim.keymap.set('n', '<leader>sr', require('sys').reload_all)
+end
+
 function keybindings.register()
   register_buffer_keybindings()
   register_bash_like_navigation_on_command_prompt()
+  register_system_keybindings()
 end
 
 return keybindings
