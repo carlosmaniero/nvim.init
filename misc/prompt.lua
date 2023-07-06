@@ -87,19 +87,24 @@ function prompt.create(lines, options)
 
   vim.api.nvim_buf_set_option(buffer_number, 'modifiable', false)
 
-  local width = vim.api.nvim_get_option("columns")
-  local height = vim.api.nvim_get_option("lines") / 3
+  local current_win = vim.api.nvim_get_current_win()
+
+  local prompt_width = math.floor(vim.api.nvim_win_get_width(current_win) * 0.75)
+  local prompt_height = math.floor(vim.api.nvim_win_get_height(current_win) * 0.5)
+
+  local top = math.floor((vim.api.nvim_win_get_height(current_win) - prompt_height) / 2)
+  local left = math.floor((vim.api.nvim_win_get_width(current_win) - prompt_width) / 2)
 
   local win_id = vim.api.nvim_open_win(buffer_number, true, {
-    relative = "editor",
-    width = width,
-    height = math.floor(height),
-    row = height * 2,
-    col = 0,
+    relative = "win",
+    width = prompt_width,
+    height = prompt_height,
+    row = top,
+    col = left,
+    border = 'single',
+    style = 'minimal'
   })
 
-  vim.api.nvim_set_option_value('number', false, {buf = buffer_number})
-  vim.api.nvim_set_option_value('relativenumber', false, {buf = buffer_number})
   vim.api.nvim_set_option_value('cursorline', true, {buf = buffer_number})
 
   if options.current_line then
@@ -131,7 +136,7 @@ end
 
 
 -- Simple test
-function create_test()
+function test_create()
   lines = {
     {"Line 1 ", prompt.prompt_line_create("Token 2", "Boolean")},
     "My line 2",
