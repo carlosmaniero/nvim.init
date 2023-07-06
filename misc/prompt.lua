@@ -107,6 +107,10 @@ function prompt.create(lines, options)
 
   vim.api.nvim_set_option_value('cursorline', true, {buf = buffer_number})
 
+  local state = {
+    selected = false
+  }
+
   if options.current_line then
     vim.api.nvim_win_set_cursor(0, {options.current_line, 0})
   end
@@ -125,11 +129,28 @@ function prompt.create(lines, options)
 
   if options.on_selected then
     vim.keymap.set('n', '<Enter>', function()
+      state.selected = true
+
       local current_line = vim.api.nvim_win_get_cursor(0)[1]
       vim.cmd("bd")
       options.on_selected(current_line)
     end, {buffer = buffer_number})
   end
+
+  vim.api.nvim_create_autocmd({"BufDelete", "WinClosed"}, { buffer = buffer_number, callback = function()
+    if not state.selected and options.on_cancel then
+      options.on_cancel()
+    end
+  end})
+
+  -- Keybindings
+  vim.keymap.set('n', 'q', function()
+    vim.cmd("bd")
+  end, {buffer = buffer_number})
+
+  vim.keymap.set('n', '<C-c>', function()
+    vim.cmd("bd")
+  end, {buffer = buffer_number})
 
   return buffer_number
 end
@@ -149,6 +170,9 @@ function test_create()
     end,
     on_selected = function(current_line)
       print("The line selected was: " .. current_line)
+    end,
+    on_cancel = function()
+      print("Cancelled")
     end
   }
   prompt.create(lines, options)
