@@ -100,9 +100,10 @@ function prompt.create(lines, options)
 
   vim.api.nvim_set_option_value('number', false, {buf = buffer_number})
   vim.api.nvim_set_option_value('relativenumber', false, {buf = buffer_number})
+  vim.api.nvim_set_option_value('cursorline', true, {buf = buffer_number})
 
   if options.current_line then
-    vim.api.nvim_win_set_cursor(0, {options.current_line + 1, 0})
+    vim.api.nvim_win_set_cursor(0, {options.current_line, 0})
   end
 
   if options.on_line_enter then
@@ -113,7 +114,7 @@ function prompt.create(lines, options)
         return
       end
       local current_line = vim.api.nvim_win_get_cursor(0)[1]
-      options.on_line_enter(current_line - 1)
+      options.on_line_enter(current_line)
     end})
   end
 
@@ -121,7 +122,7 @@ function prompt.create(lines, options)
     vim.keymap.set('n', '<Enter>', function()
       local current_line = vim.api.nvim_win_get_cursor(0)[1]
       vim.cmd("bd")
-      options.on_selected(current_line - 1)
+      options.on_selected(current_line)
     end, {buffer = buffer_number})
   end
 
@@ -137,7 +138,7 @@ function create_test()
     {prompt.prompt_line_create("Line 3", "Keyword")}
   }
   options = {
-    current_line = 1,
+    current_line = 2,
     on_line_enter = function(current_line)
       print("Cursor position changed to line: " .. current_line)
     end,
