@@ -1,14 +1,14 @@
-local find_command = "find . -type f -not -path '*/\\.*' -print"
-
 local file = {}
 local misc_prompt = require('misc.prompt')
 
 function file.prompt()
-  local files = vim.fn.system(find_command)
+  local files = vim.fn.glob("**")
   local lines = {}
 
   for line in string.gmatch(files, "([^\n]+)") do
-    table.insert(lines, line)
+    if vim.fn.isdirectory(line) == 0 then
+      table.insert(lines, line)
+    end
   end
 
   misc_prompt.create(
