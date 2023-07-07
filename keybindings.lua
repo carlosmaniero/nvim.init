@@ -7,6 +7,10 @@ function register_buffer_keybindings()
   vim.keymap.set('n', 'bc', require('misc.buffers').buffer_choose)
 end
 
+function register_file_navigation_keybindings()
+  vim.keymap.set('n', '<leader>ff', require('misc.file').prompt)
+end
+
 function register_bash_like_navigation_on_command_prompt()
   vim.api.nvim_set_keymap('c', '<C-A>', '<Home>',  {noremap = true})
   vim.api.nvim_set_keymap('c', '<C-E>', '<End>',   {noremap = true})
@@ -21,8 +25,9 @@ function register_system_keybindings()
 end
 
 function keybindings.register()
-  register_buffer_keybindings()
   register_bash_like_navigation_on_command_prompt()
+  register_buffer_keybindings()
+  register_file_navigation_keybindings()
   register_system_keybindings()
 end
 
