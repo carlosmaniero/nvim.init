@@ -7,45 +7,60 @@ end
 
 function OpenParenLocation()
   local current_buffer = 0
-  local line_number = vim.fn.line('.')
+  local current_window = 0
+
+  local cursor_line = vim.fn.line('.')
   local cursor_column = vim.fn.col('.')
-  local line = vim.api.nvim_buf_get_lines(current_buffer, line_number - 1, line_number, false)[1] or ""
-  local found = false
+
+  local window_height = vim.api.nvim_win_get_height(current_window)
+
+  local range_start = math.max(cursor_line - window_height, 0)
+  local range_end = cursor_line
+
+  local in_range_lines = vim.api.nvim_buf_get_lines(current_buffer, range_start, range_end, true)
+  local in_range_lines_len = #in_range_lines
+
   local close_paren_count = 1
-  local start_line = math.max(line_number - vim.api.nvim_win_get_height(0), 0)
 
-  repeat
-    local current_character = line:sub(cursor_column, cursor_column)
+  local line_index_to_line_number = function(line_index)
+    return cursor_line - (in_range_lines_len - line_index)
+  end
 
-    if current_character == '(' then
-      if not is_token_a_string(line_number, cursor_column) then
-        close_paren_count = close_paren_count - 1
-        if close_paren_count == 0 then
-          found = true
-        end
-      end
+  for line_index = in_range_lines_len, 1, -1 do
+    local line = in_range_lines[line_index]
+    local line_len = string.len(line)
+
+    if line_index == in_range_lines_len then
+      line_len = cursor_column
     end
 
-    if not found then
+    for column_index = line_len, 1, -1 do
+      local current_character = line:sub(column_index, column_index)
+
+      if current_character == '(' then
+        local line_number = line_index_to_line_number(line_index)
+
+        if not is_token_a_string(line_number, column_index) then
+          close_paren_count = close_paren_count - 1
+          if close_paren_count == 0 then
+            return {
+              line = line_number,
+              column = column_index
+            }
+          end
+        end
+      end
+
       if current_character == ')' then
-        if not is_token_a_string(line_number, cursor_column) then
+        local line_number = line_index_to_line_number(line_index)
+
+        if not is_token_a_string(line_number, column_index) then
           close_paren_count = close_paren_count + 1
         end
       end
-      cursor_column = cursor_column - 1
-
-      if cursor_column == 0 then
-        line_number = line_number - 1
-        if line_number < start_line then
-          return nil
-        end
-        line = vim.api.nvim_buf_get_lines(current_buffer, line_number - 1, line_number, false)[1] or ""
-        cursor_column = string.len(line) + 1
-      end
     end
-  until found
-
-  return { line = line_number, column = cursor_column }
+  end
+  return nil
 end
 
 function HI_open_paren()
@@ -54,9 +69,7 @@ function HI_open_paren()
   local open_paren = OpenParenLocation()
 
   if open_paren then
-    -- vim.fn.matchaddpos('MatchParen', {{open_paren.line, open_paren.column}})
-    vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', open_paren.line - 1, open_paren.column - 1,
-      open_paren.column)
+    vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', open_paren.line - 1, open_paren.column - 1, open_paren.column)
   end
 end
 
