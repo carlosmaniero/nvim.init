@@ -5,8 +5,9 @@ local function is_token_a_string(line, column)
   return vim.fn.synIDattr(synId, 'name') == 'String' or vim.fn.synIDattr(vim.fn.synIDtrans(synId), 'name') == 'String'
 end
 
-function OpenParenLocation(parens)
-  parens = parens or { open = '(', close = ')' }
+function OpenParenLocation(parens_list)
+  parens_list = parens_list or {{ open = '(', close = ')' }}
+
   local current_buffer = 0
   local current_window = 0
 
@@ -21,7 +22,10 @@ function OpenParenLocation(parens)
   local in_range_lines = vim.api.nvim_buf_get_lines(current_buffer, range_start, range_end, true)
   local in_range_lines_len = #in_range_lines
 
-  local close_paren_count = 1
+  local parens_stack = {}
+  for _, parens in ipairs(parens_list) do
+    parens_stack[parens.close] = 1
+  end
 
   local line_index_to_line_number = function(line_index)
     return cursor_line - (in_range_lines_len - line_index)
@@ -38,27 +42,30 @@ function OpenParenLocation(parens)
     for column_index = line_len, 1, -1 do
       local current_character = line:sub(column_index, column_index)
 
-      if current_character == parens.open then
-        local line_number = line_index_to_line_number(line_index)
+      for _, parens in ipairs(parens_list) do
+        if current_character == parens.open then
+          local line_number = line_index_to_line_number(line_index)
 
-        if not is_token_a_string(line_number, column_index) then
-          close_paren_count = close_paren_count - 1
-          if close_paren_count == 0 then
-            return {
-              line = line_number,
-              column = column_index
-            }
+          if not is_token_a_string(line_number, column_index) then
+            parens_stack[parens.close] = parens_stack[parens.close] - 1
+            if parens_stack[parens.close] == 0 then
+              return {
+                line = line_number,
+                column = column_index,
+                parens = parens
+              }
+            end
           end
         end
-      end
 
-      if current_character == parens.close then
-        local line_number = line_index_to_line_number(line_index)
+        if current_character == parens.close then
+          local line_number = line_index_to_line_number(line_index)
 
-        if not is_token_a_string(line_number, column_index) then
-          -- That's ok if the current character is a close paren
-          if line_index ~= in_range_lines_len or column_index ~= line_len then
-            close_paren_count = close_paren_count + 1
+          if not is_token_a_string(line_number, column_index) then
+            -- That's ok if the current character is a close paren
+            if line_index ~= in_range_lines_len or column_index ~= line_len then
+              parens_stack[parens.close] = parens_stack[parens.close] + 1
+            end
           end
         end
       end
@@ -135,24 +142,21 @@ end
 function HI_open_paren()
   vim.api.nvim_buf_clear_namespace(0, hi_namespace, 0, -1)
 
-  local parens = {
+  local parens_list = {
     { open = '(', close = ')' },
     { open = '[', close = ']' },
     { open = '{', close = '}' }
   }
 
-  for _, paren in ipairs(parens) do
-    local open_paren = OpenParenLocation(paren)
+  local open_paren = OpenParenLocation(parens_list)
 
-    if open_paren then
-      vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', open_paren.line - 1, open_paren.column - 1, open_paren.column)
+  if open_paren then
+    vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', open_paren.line - 1, open_paren.column - 1, open_paren.column)
 
-      local close_paren = CloseParenLocation(paren)
+    local close_paren = CloseParenLocation(open_paren.parens)
 
-      if close_paren then
-        vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', close_paren.line - 1, close_paren.column - 1, close_paren.column)
-      end
-      return
+    if close_paren then
+      vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', close_paren.line - 1, close_paren.column - 1, close_paren.column)
     end
   end
 end
