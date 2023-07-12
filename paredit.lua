@@ -6,7 +6,7 @@ local function is_token_a_string(line, column)
 end
 
 function OpenParenLocation(parens_list)
-  parens_list = parens_list or {{ open = '(', close = ')' }}
+  parens_list = parens_list or { { open = '(', close = ')' } }
 
   local current_buffer = 0
   local current_window = 0
@@ -107,7 +107,7 @@ function CloseParenLocation(parens)
       start_from = cursor_column
     end
 
-    for column_index = start_from, line_len  do
+    for column_index = start_from, line_len do
       local current_character = line:sub(column_index, column_index)
 
       if current_character == parens.close then
@@ -139,30 +139,72 @@ function CloseParenLocation(parens)
   return nil
 end
 
-function HI_open_paren()
-  vim.api.nvim_buf_clear_namespace(0, hi_namespace, 0, -1)
-
+function GetSurroundings()
   local parens_list = {
     { open = '(', close = ')' },
     { open = '[', close = ']' },
     { open = '{', close = '}' }
   }
 
-  local open_paren = OpenParenLocation(parens_list)
+  local open = OpenParenLocation(parens_list)
 
-  if open_paren then
-    vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', open_paren.line - 1, open_paren.column - 1, open_paren.column)
+  if open then
+    local close = CloseParenLocation(open.parens)
 
-    local close_paren = CloseParenLocation(open_paren.parens)
-
-    if close_paren then
-      vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen', close_paren.line - 1, close_paren.column - 1, close_paren.column)
+    if close then
+      return { open = open, close = close }
     end
+  end
+  return nil
+end
+
+function HI_open_paren()
+  vim.api.nvim_buf_clear_namespace(0, hi_namespace, 0, -1)
+
+  local surroundings = GetSurroundings()
+
+  if surroundings then
+    vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen',
+      surroundings.open.line - 1, surroundings.open.column - 1, surroundings.open.column)
+    vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen',
+      surroundings.close.line - 1, surroundings.close.column - 1, surroundings.close.column)
   end
 end
 
-vim.api.nvim_create_autocmd({ "CursorMoved" }, {
-  callback = function()
-    HI_open_paren()
+local function in_range_selection(from, to)
+  local cursor_line = vim.fn.line('.')
+
+  if cursor_line ~= from.line then
+    vim.fn.feedkeys(string.format('%dk', cursor_line - from.line))
   end
-})
+
+  vim.fn.feedkeys(string.format('%d|', from.column))
+
+  vim.fn.feedkeys('v')
+
+  if to.line ~= from.line then
+    vim.fn.feedkeys(string.format('%dj', to.line - from.line))
+  end
+
+  vim.fn.feedkeys(string.format('%d|', to.column))
+end
+
+function RegisterParedit()
+  vim.api.nvim_create_autocmd({ "CursorMoved" }, {
+    callback = function()
+      HI_open_paren()
+    end
+  })
+
+  vim.keymap.set('v', '(', function()
+    local surroundings = GetSurroundings()
+
+    if surroundings then
+      vim.fn.feedkeys('v')
+      in_range_selection(
+        surroundings.open, surroundings.close)
+    end
+  end, { noremap = true, silent = false })
+end
+
+RegisterParedit()
