@@ -189,6 +189,47 @@ local function in_range_selection(from, to)
   vim.fn.feedkeys(string.format('%d|', to.column))
 end
 
+local function go_to_next_char()
+  local cursor_line = vim.fn.line('.')
+  local cursor_column = vim.fn.col('.')
+
+  local line = vim.api.nvim_buf_get_lines(0, cursor_line - 1, cursor_line, true)[1]
+  if cursor_column >= string.len(line) then
+    vim.fn.feedkeys('j0')
+  else
+    vim.fn.feedkeys('l')
+  end
+end
+
+local function go_to_prev_char()
+  local cursor_column = vim.fn.col('.')
+
+  if cursor_column <= 1 then
+    vim.fn.feedkeys('k$')
+  else
+    vim.fn.feedkeys('h')
+  end
+end
+
+local function get_current_selection()
+  local from = vim.fn.getpos("'<")
+  local to = vim.fn.getpos("'>")
+
+  return {
+    from = { line = from[2], column = from[3] },
+    to = { line = to[2], column = to[3] }
+  }
+end
+
+local function compare_selection(from, to)
+  local selection = get_current_selection()
+  return (
+    selection.from.line == from.line and
+    selection.from.column == from.column and
+    selection.to.line == to.line and
+    selection.to.column == to.column)
+end
+
 function RegisterParedit()
   vim.api.nvim_create_autocmd({ "CursorMoved" }, {
     callback = function()
@@ -198,11 +239,35 @@ function RegisterParedit()
 
   vim.keymap.set('v', '(', function()
     local surroundings = GetSurroundings()
-
     if surroundings then
       vim.fn.feedkeys('v')
       in_range_selection(
         surroundings.open, surroundings.close)
+    end
+  end, { noremap = true, silent = false })
+
+  vim.keymap.set('v', '.', function()
+    local surroundings = GetSurroundings()
+    if surroundings and compare_selection(surroundings.open, surroundings.close) then
+      go_to_next_char()
+
+      vim.schedule(function()
+        surroundings = GetSurroundings()
+
+        if surroundings then
+          vim.fn.feedkeys('v')
+          in_range_selection(
+            surroundings.open, surroundings.close)
+        else
+          go_to_prev_char()
+        end
+      end)
+    else
+      if surroundings then
+        vim.fn.feedkeys('v')
+        in_range_selection(
+          surroundings.open, surroundings.close)
+      end
     end
   end, { noremap = true, silent = false })
 end
