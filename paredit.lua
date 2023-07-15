@@ -1,3 +1,5 @@
+local paredit = {}
+
 local hi_namespace = vim.api.nvim_create_namespace("paredit")
 
 local function is_token_a_string(line, column)
@@ -158,7 +160,7 @@ function GetSurroundings()
   return nil
 end
 
-function HI_open_paren()
+function paredit.highlight_surroundings()
   vim.api.nvim_buf_clear_namespace(0, hi_namespace, 0, -1)
 
   local surroundings = GetSurroundings()
@@ -235,62 +237,54 @@ local function get_current_selection()
   }
 end
 
+local surroundings_stack = {}
+
 local function compare_selection(from, to)
   local selection = get_current_selection()
   return (
     compare_location(selection.from, from) and compare_location(selection.to, to))
 end
 
-function RegisterParedit()
-  local surroundings_stack = {}
+function paredit.previous_selection()
+  if #surroundings_stack == 1 then
+    return
+  end
+  table.remove(surroundings_stack, #surroundings_stack)
+  local surroundings = surroundings_stack[#surroundings_stack]
 
-  vim.api.nvim_create_autocmd({ "CursorMoved" }, {
-    callback = function()
-      HI_open_paren()
-    end
-  })
+  if surroundings then
+    vim.fn.feedkeys('v')
+    in_range_selection(
+      surroundings.open, surroundings.close)
+  end
+end
 
-  vim.keymap.set('v', '-', function()
-    if #surroundings_stack == 1 then
-      return
-    end
-    table.remove(surroundings_stack, #surroundings_stack)
-    local surroundings = surroundings_stack[#surroundings_stack]
+function paredit.next_selection()
+  local surroundings = GetSurroundings()
+  if surroundings then
+    if compare_selection(surroundings.open, surroundings.close) then
+      go_to_next_char()
 
-    if surroundings then
+      vim.schedule(function()
+        surroundings = GetSurroundings()
+
+        if surroundings then
+          table.insert(surroundings_stack, surroundings)
+
+          vim.fn.feedkeys('v')
+          in_range_selection(
+            surroundings.open, surroundings.close)
+        else
+          go_to_prev_char()
+        end
+      end)
+    else
+      surroundings_stack = { surroundings }
       vim.fn.feedkeys('v')
       in_range_selection(
         surroundings.open, surroundings.close)
     end
-  end)
-
-  vim.keymap.set('v', '.', function()
-    local surroundings = GetSurroundings()
-    if surroundings then
-      if compare_selection(surroundings.open, surroundings.close) then
-        go_to_next_char()
-
-        vim.schedule(function()
-          surroundings = GetSurroundings()
-
-          if surroundings then
-            table.insert(surroundings_stack, surroundings)
-
-            vim.fn.feedkeys('v')
-            in_range_selection(
-              surroundings.open, surroundings.close)
-          else
-            go_to_prev_char()
-          end
-        end)
-      else
-        surroundings_stack = { surroundings }
-        vim.fn.feedkeys('v')
-        in_range_selection(
-          surroundings.open, surroundings.close)
-      end
-    end
-  end, { noremap = true, silent = false })
+  end
 end
 
-RegisterParedit()
+return paredit
