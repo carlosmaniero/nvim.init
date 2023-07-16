@@ -265,7 +265,16 @@ function paredit.raise()
   local count = math.max(tonumber(vim.v.count) or 1, 1)
 
   for _ = 1, count do
-    if get_current_char() == '(' then
+    local should_raise_parent = false
+
+    for _, paren in ipairs(supported_parens_list) do
+      if get_current_char() == paren.open then
+        should_raise_parent = true
+        break
+      end
+    end
+
+    if should_raise_parent then
       local initial_selection = paredit.next_selection()
 
       if initial_selection then
