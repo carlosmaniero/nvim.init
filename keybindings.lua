@@ -33,6 +33,7 @@ local function register_paredit()
   vim.keymap.set('n', '\\r', paredit.raise, { noremap = true })
   vim.keymap.set('v', '\\r', paredit.raise, { noremap = true })
   vim.keymap.set('n', '\\>', paredit.swallow, { noremap = true })
+  vim.keymap.set({'n', 'v'}, '\\<', paredit.spew, { noremap = true })
 end
 
 function keybindings.register()

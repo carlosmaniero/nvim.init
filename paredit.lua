@@ -259,6 +259,15 @@ local function is_current_open_paren()
   return false
 end
 
+local function is_current_close_paren()
+  for _, paren in ipairs(supported_parens_list) do
+    if get_char(position.get_current()) == paren.close then
+      return true
+    end
+  end
+  return false
+end
+
 function paredit.swallow()
   local surroundings = GetSurroundings()
 
@@ -292,6 +301,50 @@ function paredit.swallow()
     end
 
     position.go_to(swallow_until)
+
+    vim.fn.feedkeys('p', 'x')
+  end
+end
+
+function paredit.spew()
+  local surroundings = GetSurroundings()
+
+  if surroundings then
+    position.go_to(surroundings.close)
+
+    go_to_prev_char()
+
+    while is_char_empty(position.get_current()) and not position.is_top(position.get_current()) do
+      go_to_prev_char()
+    end
+
+    local swallow_until = surroundings.close
+
+    if is_current_close_paren() then
+      local swallow_surroundings = GetSurroundings()
+      if swallow_surroundings then
+        swallow_until = swallow_surroundings.open
+      end
+    else
+      local current_symbol_name = symbol.get_name(position.get_current())
+      swallow_until = symbol.get_current_symbol_position(current_symbol_name).from
+    end
+
+    if position.compare(surroundings.close, swallow_until) then
+      return
+    end
+
+    position.go_to(surroundings.close)
+
+    vim.fn.feedkeys('vyx', 'x')
+
+    position.go_to(swallow_until)
+
+    go_to_prev_char()
+
+    while is_char_empty(position.get_current()) and not position.is_top(position.get_current()) do
+      go_to_prev_char()
+    end
 
     vim.fn.feedkeys('p', 'x')
   end
