@@ -1,5 +1,5 @@
 local paredit = {
-  raise_parent_on_first_word = true
+  raisable_symbols = { 'String', 'Number', 'Character', 'Boolean' }
 }
 
 local position = require('misc.position')
@@ -61,7 +61,7 @@ function OpenParenLocation(parens_list)
         if current_character == parens.open then
           local line_number = line_index_to_line_number(line_index)
 
-          if not symbol.is({line = line_number, column = column_index}, 'String') then
+          if not symbol.is({ line = line_number, column = column_index }, 'String') then
             parens_stack[parens.close] = parens_stack[parens.close] - 1
             if parens_stack[parens.close] == 0 then
               return {
@@ -76,7 +76,7 @@ function OpenParenLocation(parens_list)
         if current_character == parens.close then
           local line_number = line_index_to_line_number(line_index)
 
-          if not symbol.is({line = line_number, column = column_index}, 'String') then
+          if not symbol.is({ line = line_number, column = column_index }, 'String') then
             -- That's ok if the current character is a close paren
             if line_index ~= in_range_lines_len or column_index ~= line_len then
               parens_stack[parens.close] = parens_stack[parens.close] + 1
@@ -127,7 +127,7 @@ function CloseParenLocation(parens)
       if current_character == parens.close then
         local line_number = line_index_to_line_number(line_index)
 
-        if not symbol.is({line = line_number, column = column_index}, 'String') then
+        if not symbol.is({ line = line_number, column = column_index }, 'String') then
           open_paren_count = open_paren_count - 1
           if open_paren_count == 0 then
             return {
@@ -141,7 +141,7 @@ function CloseParenLocation(parens)
       if current_character == parens.open then
         local line_number = line_index_to_line_number(line_index)
 
-        if not symbol.is({line = line_number, column = column_index}, 'String') then
+        if not symbol.is({ line = line_number, column = column_index }, 'String') then
           -- That's ok if the current character is a open paren
           if line_index > 1 or column_index ~= start_from then
             open_paren_count = open_paren_count + 1
@@ -261,16 +261,24 @@ function paredit.next_selection()
   end
 end
 
+function paredit.swallow()
+
+end
+
 function paredit.raise()
   local count = math.max(tonumber(vim.v.count) or 1, 1)
 
   for _ = 1, count do
-    local should_raise_parent = false
+    local should_raise_parent = true
+    local current_symbol_location = nil
 
-    for _, paren in ipairs(supported_parens_list) do
-      if get_current_char() == paren.open then
-        should_raise_parent = true
-        break
+    if vim.fn.mode() ~= 'v' then
+      for _, sym in ipairs(paredit.raisable_symbols) do
+        if symbol.is_current(sym) then
+          should_raise_parent = false
+          current_symbol_location = symbol.get_current_symbol_position(sym)
+          break
+        end
       end
     end
 
@@ -288,7 +296,11 @@ function paredit.raise()
       end
     else
       if vim.fn.mode() ~= 'v' then
-        vim.fn.feedkeys('viw')
+        if current_symbol_location then
+          selection.range(current_symbol_location.from, current_symbol_location.to)
+        else
+          vim.fn.feedkeys('viw')
+        end
       end
 
       vim.fn.feedkeys('ygv', 'x')
