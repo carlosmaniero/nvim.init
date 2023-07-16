@@ -83,4 +83,8 @@ function GetPostion()
   return symbol.get_current_symbol_position(symbol.get_name(position.get_current()))
 end
 
+function GetName()
+  return symbol.get_name(position.get_current())
+end
+
 return symbol

@@ -1,11 +1,30 @@
 local lsp = {}
+local symbol = require('misc.symbol')
 
 function lsp.setup()
   local lsp_default_capabilities = vim.lsp.protocol.make_client_capabilities()
 
   -- Enable file creating and renaming
   lsp_default_capabilities.workspace.workspaceEdit.documentChanges = true
-  lsp_default_capabilities.semanticTokensProvider = nil
+
+  vim.api.nvim_create_autocmd('LspTokenUpdate', {
+    callback = function(args)
+      local token = args.data.token
+
+      if token.type == 'function' and not token.modifiers.definition then
+        local original_sym_name = symbol.get_name({
+          line = token.line + 1,
+          column = token.start_col + 1
+        })
+
+        if original_sym_name ~= 'Function' then
+          vim.lsp.semantic_tokens.highlight_token(
+            token, args.buf, args.data.client_id, original_sym_name
+          )
+        end
+      end
+    end,
+  })
 
   require('lspconfig').lua_ls.setup({
     settings = {
@@ -16,7 +35,7 @@ function lsp.setup()
         },
         diagnostics = {
           -- Get the language server to recognize the `vim` global
-          globals = {'vim'},
+          globals = { 'vim' },
         },
         workspace = {
           -- Make the server aware of Neovim runtime files
@@ -34,7 +53,7 @@ function lsp.setup()
     capabilities = lsp_default_capabilities,
     on_attach = function(client, _)
       -- For clojure it makes the code highlight ugly and flaky
-      client.server_capabilities.semanticTokensProvider = nil
+      client.server_capabilities.semanticTokensProvider.full = true
     end,
   })
 
