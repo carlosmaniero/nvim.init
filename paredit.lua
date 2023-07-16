@@ -287,6 +287,10 @@ function paredit.swallow()
 
     vim.fn.feedkeys('vyx', 'x')
 
+    if swallow_until.line == surroundings.close.line then
+      swallow_until.column = swallow_until.column - 1
+    end
+
     position.go_to(swallow_until)
 
     vim.fn.feedkeys('p', 'x')
