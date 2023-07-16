@@ -189,6 +189,9 @@ local function in_range_selection(from, to)
   end
 
   vim.fn.feedkeys(string.format('%d|', to.column))
+
+  -- Cleans typeahead
+  vim.fn.feedkeys('', 'x')
 end
 
 local function go_to_next_char()
@@ -197,9 +200,9 @@ local function go_to_next_char()
 
   local line = vim.api.nvim_buf_get_lines(0, cursor_line - 1, cursor_line, true)[1]
   if cursor_column >= string.len(line) then
-    vim.fn.feedkeys('j0')
+    vim.fn.feedkeys('j0', 'x')
   else
-    vim.fn.feedkeys('l')
+    vim.fn.feedkeys('l', 'x')
   end
 end
 
@@ -207,13 +210,13 @@ local function go_to_prev_char()
   local cursor_column = vim.fn.col('.')
 
   if cursor_column <= 1 then
-    vim.fn.feedkeys('k$')
+    vim.fn.feedkeys('k$', 'x')
     -- In visual mode the \n counts as a char so its needed to back one more
     if vim.fn.mode() == 'v' then
-      vim.fn.feedkeys('h')
+      vim.fn.feedkeys('h', 'x')
     end
   else
-    vim.fn.feedkeys('h')
+    vim.fn.feedkeys('h', 'x')
   end
 end
 
@@ -237,13 +240,18 @@ local function get_current_selection()
   }
 end
 
-local surroundings_stack = {}
-
 local function compare_selection(from, to)
   local selection = get_current_selection()
   return (
     compare_location(selection.from, from) and compare_location(selection.to, to))
 end
+
+local function select_surroundings(surroundings)
+  vim.fn.feedkeys('v', 'x')
+  in_range_selection(surroundings.open, surroundings.close)
+end
+
+local surroundings_stack = {}
 
 function paredit.previous_selection()
   if #surroundings_stack == 1 then
@@ -253,9 +261,7 @@ function paredit.previous_selection()
   local surroundings = surroundings_stack[#surroundings_stack]
 
   if surroundings then
-    vim.fn.feedkeys('v')
-    in_range_selection(
-      surroundings.open, surroundings.close)
+    select_surroundings(surroundings)
   end
 end
 
@@ -265,24 +271,52 @@ function paredit.next_selection()
     if compare_selection(surroundings.open, surroundings.close) then
       go_to_next_char()
 
-      vim.schedule(function()
-        surroundings = GetSurroundings()
+      local new_surroundings = GetSurroundings()
 
-        if surroundings then
-          table.insert(surroundings_stack, surroundings)
+      if new_surroundings then
+        table.insert(surroundings_stack, new_surroundings)
 
-          vim.fn.feedkeys('v')
-          in_range_selection(
-            surroundings.open, surroundings.close)
-        else
-          go_to_prev_char()
-        end
-      end)
+        select_surroundings(new_surroundings)
+
+        return {
+          changed = true,
+          surroundings = new_surroundings
+        }
+      else
+        go_to_prev_char()
+
+        return {
+          changed = false,
+          surroundings = surroundings
+        }
+      end
     else
       surroundings_stack = { surroundings }
-      vim.fn.feedkeys('v')
-      in_range_selection(
-        surroundings.open, surroundings.close)
+      select_surroundings(surroundings)
+
+      return {
+        initial = true,
+        surroundings = surroundings
+      }
+    end
+
+    options.selected_callback({
+      initial = true,
+    })
+  end
+end
+
+function paredit.raise()
+  vim.fn.feedkeys('v', 'x')
+  local selection = paredit.next_selection()
+
+  if selection then
+    -- Copy and reselect the text
+    vim.fn.feedkeys('ygv', 'x')
+    local parent_selection = paredit.next_selection()
+
+    if parent_selection and parent_selection.changed then
+      vim.fn.feedkeys('p', 'x')
     end
   end
 end
