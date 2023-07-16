@@ -1,13 +1,24 @@
-local paredit = {}
+local paredit = {
+  raise_parent_on_first_word = true
+}
 
 local position = require('misc.position')
 local selection = require('misc.selection')
+local symbol = require('misc.symbol')
 
 local hi_namespace = vim.api.nvim_create_namespace("paredit")
 
-local function is_token_a_string(line, column)
-  local synId = vim.fn.synID(line, column, 0)
-  return vim.fn.synIDattr(synId, 'name') == 'String' or vim.fn.synIDattr(vim.fn.synIDtrans(synId), 'name') == 'String'
+local supported_parens_list = {
+  { open = '(', close = ')' },
+  { open = '[', close = ']' },
+  { open = '{', close = '}' }
+}
+
+local function get_current_char()
+  local cursor = position.get_current()
+  local line = vim.api.nvim_get_current_line()
+  local char = line:sub(cursor.column, cursor.column)
+  return char
 end
 
 function OpenParenLocation(parens_list)
@@ -50,7 +61,7 @@ function OpenParenLocation(parens_list)
         if current_character == parens.open then
           local line_number = line_index_to_line_number(line_index)
 
-          if not is_token_a_string(line_number, column_index) then
+          if not symbol.is({line = line_number, column = column_index}, 'String') then
             parens_stack[parens.close] = parens_stack[parens.close] - 1
             if parens_stack[parens.close] == 0 then
               return {
@@ -65,7 +76,7 @@ function OpenParenLocation(parens_list)
         if current_character == parens.close then
           local line_number = line_index_to_line_number(line_index)
 
-          if not is_token_a_string(line_number, column_index) then
+          if not symbol.is({line = line_number, column = column_index}, 'String') then
             -- That's ok if the current character is a close paren
             if line_index ~= in_range_lines_len or column_index ~= line_len then
               parens_stack[parens.close] = parens_stack[parens.close] + 1
@@ -116,7 +127,7 @@ function CloseParenLocation(parens)
       if current_character == parens.close then
         local line_number = line_index_to_line_number(line_index)
 
-        if not is_token_a_string(line_number, column_index) then
+        if not symbol.is({line = line_number, column = column_index}, 'String') then
           open_paren_count = open_paren_count - 1
           if open_paren_count == 0 then
             return {
@@ -130,7 +141,7 @@ function CloseParenLocation(parens)
       if current_character == parens.open then
         local line_number = line_index_to_line_number(line_index)
 
-        if not is_token_a_string(line_number, column_index) then
+        if not symbol.is({line = line_number, column = column_index}, 'String') then
           -- That's ok if the current character is a open paren
           if line_index > 1 or column_index ~= start_from then
             open_paren_count = open_paren_count + 1
@@ -143,13 +154,7 @@ function CloseParenLocation(parens)
 end
 
 function GetSurroundings()
-  local parens_list = {
-    { open = '(', close = ')' },
-    { open = '[', close = ']' },
-    { open = '{', close = '}' }
-  }
-
-  local open = OpenParenLocation(parens_list)
+  local open = OpenParenLocation(supported_parens_list)
 
   if open then
     local close = CloseParenLocation(open.parens)
@@ -260,14 +265,23 @@ function paredit.raise()
   local count = math.max(tonumber(vim.v.count) or 1, 1)
 
   for _ = 1, count do
-    local initial_selection = paredit.next_selection()
+    if get_current_char() == '(' then
+      local initial_selection = paredit.next_selection()
 
-    if initial_selection then
-      -- Copy and reselect the text
-      vim.fn.feedkeys('ygv', 'x')
+      if initial_selection then
+        -- Copy and reselect the text
+        vim.fn.feedkeys('ygv', 'x')
+        local parent_selection = paredit.next_selection()
+
+        if parent_selection and parent_selection.changed then
+          vim.fn.feedkeys('p', 'x')
+        end
+      end
+    else
+      vim.fn.feedkeys('viwygv', 'x')
       local parent_selection = paredit.next_selection()
 
-      if parent_selection and parent_selection.changed then
+      if parent_selection then
         vim.fn.feedkeys('p', 'x')
       end
     end
