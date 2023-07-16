@@ -288,6 +288,12 @@ function paredit.swallow()
         swallow_until = swallow_surroundings.close
       end
     else
+      if is_current_close_paren() then
+        paredit.swallow()
+        position.go_to(surroundings.close)
+        paredit.swallow()
+        return
+      end
       local current_symbol_name = symbol.get_name(position.get_current())
       swallow_until = symbol.get_current_symbol_position(current_symbol_name).to
     end

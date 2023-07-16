@@ -39,9 +39,13 @@ function symbol.get_current_symbol_position(symbol_name)
     walk = { prev = 'b', next = 'w' }
   end
 
-  while symbol.is_current(symbol_name) and not position.is_top(position.get_current()) do
+  while symbol.is_current(symbol_name) and not position.get_current().column == 1 do
     from = position.get_current()
     vim.fn.feedkeys(walk.prev, 'x')
+  end
+
+  if symbol.is_current(symbol_name) and position.get_current().column == 1 then
+    from = position.get_current()
   end
 
   position.go_to(current_position)
