@@ -1,5 +1,5 @@
 local paredit = {
-  raisable_symbols = { 'String', 'Number', 'Character', 'Boolean' }
+  raisable_symbols = { 'String', 'Number', 'Character', 'Boolean', 'Keyword' }
 }
 
 local position = require('misc.position')
@@ -14,11 +14,15 @@ local supported_parens_list = {
   { open = '{', close = '}' }
 }
 
-local function get_current_char()
-  local cursor = position.get_current()
+local function get_char(symbol_position)
   local line = vim.api.nvim_get_current_line()
-  local char = line:sub(cursor.column, cursor.column)
+  local char = line:sub(symbol_position.column, symbol_position.column)
   return char
+end
+
+local function is_char_empty(symbol_position)
+  local char = get_char(position.get_current())
+  return char == ' ' or char == ''
 end
 
 function OpenParenLocation(parens_list)
@@ -180,26 +184,11 @@ function paredit.highlight_surroundings()
 end
 
 local function go_to_next_char()
-  local cursor_position = position.get_current()
-
-  local line = vim.api.nvim_buf_get_lines(0, cursor_position.line - 1, cursor_position.line, true)[1]
-  if cursor_position.column >= string.len(line) then
-    vim.fn.feedkeys('j0', 'x')
-  else
-    vim.fn.feedkeys('l', 'x')
-  end
+  vim.fn.feedkeys(' ', 'x')
 end
 
 local function go_to_prev_char()
-  if position.get_current().column <= 1 then
-    vim.fn.feedkeys('k$', 'x')
-    -- In visual mode the \n counts as a char so its needed to back one more
-    if vim.fn.mode() == 'v' then
-      vim.fn.feedkeys('h', 'x')
-    end
-  else
-    vim.fn.feedkeys('h', 'x')
-  end
+  vim.fn.feedkeys('\b', 'x')
 end
 
 local function select_surroundings(surroundings)
@@ -261,8 +250,47 @@ function paredit.next_selection()
   end
 end
 
-function paredit.swallow()
+local function is_current_open_paren()
+  for _, paren in ipairs(supported_parens_list) do
+    if get_char(position.get_current()) == paren.open then
+      return true
+    end
+  end
+  return false
+end
 
+function paredit.swallow()
+  local surroundings = GetSurroundings()
+
+  if surroundings then
+    position.go_to(surroundings.close)
+
+    go_to_next_char()
+
+    while is_char_empty(position.get_current()) and not position.is_eof(position.get_current()) do
+      go_to_next_char()
+    end
+
+    local swallow_until = surroundings.close
+
+    if is_current_open_paren() then
+      local swallow_surroundings = GetSurroundings()
+      if swallow_surroundings then
+        swallow_until = swallow_surroundings.close
+      end
+    else
+      local current_symbol_name = symbol.get_name(position.get_current())
+      swallow_until = symbol.get_current_symbol_position(current_symbol_name).to
+    end
+
+    position.go_to(surroundings.close)
+
+    vim.fn.feedkeys('vyx', 'x')
+
+    position.go_to(swallow_until)
+
+    vim.fn.feedkeys('p', 'x')
+  end
 end
 
 function paredit.raise()

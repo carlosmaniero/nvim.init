@@ -1,7 +1,23 @@
 local symbol = {}
 local position = require('misc.position')
 
+local function get_char(symbol_position)
+  local line = vim.api.nvim_get_current_line()
+  local char = line:sub(symbol_position.column, symbol_position.column)
+  return char
+end
+
+function symbol.get_name(symbol_position)
+  local synId = vim.fn.synID(symbol_position.line, symbol_position.column, 0)
+  return vim.fn.synIDattr(synId, 'name')
+end
+
 function symbol.is(symbol_position, symbol_name)
+  if symbol_name ~= 'String' then
+    if get_char(symbol_position) == ' ' or get_char(symbol_position) == '' then
+      return false
+    end
+  end
   local synId = vim.fn.synID(symbol_position.line, symbol_position.column, 0)
   return (
     vim.fn.synIDattr(synId, 'name') == symbol_name or
@@ -30,9 +46,17 @@ function symbol.get_current_symbol_position(symbol_name)
 
   position.go_to(current_position)
 
-  while symbol.is_current(symbol_name) and not position.is_eof(position.get_current()) do
+  while (
+      symbol.is_current(symbol_name) and
+      not (symbol_name ~= 'String' and position.is_eol(position.get_current())) and
+      not position.is_eof(position.get_current())
+    ) do
     to = position.get_current()
     vim.fn.feedkeys(walk.next, 'x')
+  end
+
+  if symbol_name ~= 'String' and position.is_eol(position.get_current()) and symbol.is_current(symbol_name) then
+    to = position.get_current()
   end
 
   position.go_to(current_position)
