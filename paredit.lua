@@ -278,7 +278,11 @@ function paredit.raise()
         end
       end
     else
-      vim.fn.feedkeys('viwygv', 'x')
+      if vim.fn.mode() ~= 'v' then
+        vim.fn.feedkeys('viw')
+      end
+
+      vim.fn.feedkeys('ygv', 'x')
       local parent_selection = paredit.next_selection()
 
       if parent_selection then

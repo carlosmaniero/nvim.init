@@ -31,6 +31,7 @@ local function register_paredit()
   vim.keymap.set('v', '-', paredit.previous_selection)
   vim.keymap.set('v', '.', paredit.next_selection, { noremap = true })
   vim.keymap.set('n', '\\r', paredit.raise, { noremap = true })
+  vim.keymap.set('v', '\\r', paredit.raise, { noremap = true })
 end
 
 function keybindings.register()
