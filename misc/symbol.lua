@@ -9,7 +9,7 @@ end
 
 function symbol.get_name(symbol_position)
   local synId = vim.fn.synID(symbol_position.line, symbol_position.column, 0)
-  return vim.fn.synIDattr(synId, 'name')
+  return vim.fn.synIDattr(vim.fn.synIDtrans(synId), 'name')
 end
 
 function symbol.is(symbol_position, symbol_name)
@@ -39,33 +39,48 @@ function symbol.get_current_symbol_position(symbol_name)
     walk = { prev = 'b', next = 'w' }
   end
 
-  while symbol.is_current(symbol_name) and not position.get_current().column == 1 do
+  while symbol.is_current(symbol_name) do
     from = position.get_current()
-    vim.fn.feedkeys(walk.prev, 'x')
-  end
 
-  if symbol.is_current(symbol_name) and position.get_current().column == 1 then
-    from = position.get_current()
+    if from.column == 1 then
+      -- Strings may be multiline
+      if symbol_name == 'String' then
+        if position.is_top(from) then
+          break
+        end
+      else
+        break
+      end
+    end
+
+    vim.fn.feedkeys(walk.prev, 'x')
   end
 
   position.go_to(current_position)
 
-  while (
-      symbol.is_current(symbol_name) and
-      not (symbol_name ~= 'String' and position.is_eol(position.get_current())) and
-      not position.is_eof(position.get_current())
-    ) do
+  while symbol.is_current(symbol_name) do
     to = position.get_current()
-    vim.fn.feedkeys(walk.next, 'x')
-  end
 
-  if symbol_name ~= 'String' and position.is_eol(position.get_current()) and symbol.is_current(symbol_name) then
-    to = position.get_current()
+    if position.is_eol(to) then
+      if symbol_name == 'String' then
+        if position.is_eof(to) then
+          break
+        end
+      else
+        break
+      end
+    end
+
+    vim.fn.feedkeys(walk.next, 'x')
   end
 
   position.go_to(current_position)
 
   return { from = from, to = to }
+end
+
+function GetPostion()
+  return symbol.get_current_symbol_position(symbol.get_name(position.get_current()))
 end
 
 return symbol

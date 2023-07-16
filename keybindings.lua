@@ -30,10 +30,9 @@ local function register_paredit()
   vim.api.nvim_create_autocmd({ "CursorMoved" }, { callback = paredit.highlight_surroundings })
   vim.keymap.set('v', '-', paredit.previous_selection)
   vim.keymap.set('v', '.', paredit.next_selection, { noremap = true })
-  vim.keymap.set('n', '\\r', paredit.raise, { noremap = true })
-  vim.keymap.set('v', '\\r', paredit.raise, { noremap = true })
-  vim.keymap.set('n', '\\>', paredit.swallow, { noremap = true })
-  vim.keymap.set({'n', 'v'}, '\\<', paredit.spew, { noremap = true })
+  vim.keymap.set({'n', 'v'}, '<leader>pr', paredit.raise, { noremap = true })
+  vim.keymap.set('n', '<leader>>', paredit.swallow, { noremap = true })
+  vim.keymap.set('n', '<leader><', paredit.spew, { noremap = true })
 end
 
 function keybindings.register()
