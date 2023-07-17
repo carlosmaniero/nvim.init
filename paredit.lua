@@ -21,7 +21,7 @@ local function get_char(symbol_position)
 end
 
 local function is_char_empty(symbol_position)
-  local char = get_char(position.get_current())
+  local char = get_char(symbol_position)
   return char == ' ' or char == ''
 end
 
@@ -402,6 +402,60 @@ function paredit.raise()
       end
     end
   end
+end
+
+function paredit.on_insert_char(char)
+  if char == '(' then
+    vim.fn.feedkeys(vim.api.nvim_replace_termcodes(')<Left>', true, false, true), 'it')
+  end
+  if char == '[' then
+    vim.fn.feedkeys(vim.api.nvim_replace_termcodes(']<Left>', true, false, true), 'it')
+  end
+  if char == '{' then
+    vim.fn.feedkeys(vim.api.nvim_replace_termcodes('}<Left>', true, false, true), 'it')
+  end
+end
+
+-- Return true if it should continue with the deletion
+function paredit.should_remove_block()
+  local current_position = position.get_current()
+  current_position.column = current_position.column - 1
+
+  local previous_char = get_char(current_position)
+
+  if previous_char then
+    for _, paren in ipairs(supported_parens_list) do
+      if previous_char == paren.open or previous_char == paren.close then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+-- Return true if a block were removed
+function paredit.remove_block()
+  local current_position = position.get_current()
+  local current_char = get_char(current_position)
+
+  if current_char then
+    for _, paren in ipairs(supported_parens_list) do
+      if current_char == paren.open or current_char == paren.close then
+        -- Changes connot be committed on keymaps
+        -- so then the changes are scheduled
+        vim.schedule(function()
+          if vim.fn.mode() ~= 'v' then
+            vim.fn.feedkeys('v', 'x')
+          end
+          paredit.next_selection()
+          vim.fn.feedkeys('x', 'x')
+        end)
+
+        return true
+      end
+    end
+  end
+  return false
 end
 
 return paredit

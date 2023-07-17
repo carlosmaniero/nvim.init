@@ -30,9 +30,29 @@ local function register_paredit()
   vim.api.nvim_create_autocmd({ "CursorMoved" }, { callback = paredit.highlight_surroundings })
   vim.keymap.set('v', '-', paredit.previous_selection)
   vim.keymap.set('v', '.', paredit.next_selection, { noremap = true })
-  vim.keymap.set({'n', 'v'}, '<leader>pr', paredit.raise, { noremap = true })
+  vim.keymap.set({ 'n', 'v' }, '<leader>pr', paredit.raise, { noremap = true })
   vim.keymap.set('n', '<leader>>', paredit.swallow, { noremap = true })
   vim.keymap.set('n', '<leader><', paredit.spew, { noremap = true })
+
+  vim.api.nvim_create_autocmd("InsertCharPre", {
+    callback = function()
+      paredit.on_insert_char(vim.v.char)
+    end,
+  })
+
+  vim.keymap.set('i', '<BS>', function()
+    if paredit.should_remove_block() then
+      return "<Esc>x"
+    end
+    return "<Bs>"
+  end, { remap = true, expr = true })
+
+  vim.keymap.set('n', 'x', function()
+    if paredit.remove_block() then
+      return ""
+    end
+    return "x"
+  end, { remap = true, expr = true })
 end
 
 function keybindings.register()
