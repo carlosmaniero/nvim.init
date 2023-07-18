@@ -1,0 +1,20 @@
+name: Testing
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run_shell_commands:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run shell commands
+        run: |
+          sudo apt-get update
+          sudo apt-get install neovim
+          ./tests/run.sh
