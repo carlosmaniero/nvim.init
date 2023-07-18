@@ -15,16 +15,16 @@ end
 function RunSuite()
   local passed = true
   for _, suite_name in ipairs(suites) do
-    print(string.format('- Running the test suite %s...\n', suite_name))
+    print(string.format('Running the test suite %s\n\n', suite_name))
     local suite = require(suite_name)
 
     for name, test_fn in pairs(suite) do
-      print(string.format('-> %s...', name))
+      print(string.format(' » %s...', name))
 
       local ok, result = pcall(test_fn)
 
       if ok then
-        print(' OK \n')
+        print(' passed \n')
       else
         print_error(result)
         passed = false

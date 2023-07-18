@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  run_shell_commands:
+  run_tests:
     runs-on: ubuntu-latest
 
     steps:
