@@ -27,6 +27,8 @@ function packages.install(url)
   end
 
   vim.cmd('packadd ' .. repo.name)
+
+  package.path = package.path .. ";" .. repo.dir .. "/?.lua"
 end
 
 function packages.update_all()

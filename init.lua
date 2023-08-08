@@ -26,25 +26,19 @@ vim.g.mapleader = ','
 -- enable x clipboard integration
 vim.opt.clipboard = "unnamedplus"
 
--- Keybindings
-require('keybindings').register()
-
 Packages = require('packages')
 
 Packages.install('https://github.com/neovim/nvim-lspconfig')
 Packages.install('https://github.com/Mofiqul/dracula.nvim')
+Packages.install('https://github.com/nvim-lua/plenary.nvim')
+Packages.install('https://github.com/nvim-telescope/telescope.nvim')
 
 vim.cmd('colorscheme dracula')
 
 require('diagnostic').setup()
 require('lsp').setup()
 
+-- Keybindings
+require('keybindings').register()
 
-vim.api.nvim_create_autocmd("BufEnter", {
-  pattern = "*.clj",
-  callback = function()
-    vim.api.nvim_set_hl(0, '@lsp.type.macro.clojure', {})
-    vim.api.nvim_set_hl(0, 'Special', { link = 'Repeat' })
-    vim.fn.matchadd('Define', 's/defn')
-  end
-})
+require('languages.clojure')

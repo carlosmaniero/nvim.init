@@ -4,11 +4,17 @@ local function register_buffer_keybindings()
   vim.keymap.set('n', '<leader>bn', function() vim.cmd("bn") end)
   vim.keymap.set('n', '<leader>bp', function() vim.cmd("bp") end)
   vim.keymap.set('n', '<leader>bd', function() vim.cmd("bd") end)
-  vim.keymap.set('n', '<leader>bc', require('misc.buffers').buffer_choose)
+  -- vim.keymap.set('n', '<leader>bc', require('misc.buffers').buffer_choose)
 end
 
-local function register_file_navigation_keybindings()
-  vim.keymap.set('n', '<leader>ff', require('misc.file').prompt)
+local function register_telescope()
+  -- TODO: I still need to implement my own fuzzysearch
+  -- vim.keymap.set('n', '<leader>ff', require('misc.file').prompt)
+  local builtin = require('telescope.builtin')
+  vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+  vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
+  vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
+  vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 end
 
 local function register_bash_like_navigation_on_command_prompt()
@@ -58,7 +64,7 @@ end
 function keybindings.register()
   register_bash_like_navigation_on_command_prompt()
   register_buffer_keybindings()
-  register_file_navigation_keybindings()
+  register_telescope()
   register_system_keybindings()
   register_paredit()
 end
