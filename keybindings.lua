@@ -32,33 +32,54 @@ end
 
 local function register_paredit()
   local paredit = require('paredit')
-
   vim.api.nvim_create_autocmd({ "CursorMoved" }, { callback = paredit.highlight_surroundings })
-  vim.keymap.set('v', '-', paredit.previous_selection)
-  vim.keymap.set('v', '.', paredit.next_selection, { noremap = true })
-  vim.keymap.set({ 'n', 'v' }, '<leader>pr', paredit.raise, { noremap = true })
-  vim.keymap.set('n', '<leader>>', paredit.swallow, { noremap = true })
-  vim.keymap.set('n', '<leader><', paredit.spew, { noremap = true })
+  local paredit_pattern = "*.clj"
 
   vim.api.nvim_create_autocmd("InsertCharPre", {
+    pattern = paredit_pattern,
     callback = function()
       paredit.on_insert_char(vim.v.char)
     end,
   })
 
-  vim.keymap.set('i', '<BS>', function()
-    if paredit.should_remove_block() then
-      return "<Esc>x"
-    end
-    return "<Bs>"
-  end, { remap = true, expr = true })
+  vim.api.nvim_create_autocmd("BufEnter", {
+    pattern = paredit_pattern,
+    callback = function()
+      vim.keymap.set('v', '-', paredit.previous_selection, { buffer = true })
+      vim.keymap.set('v', '.', paredit.next_selection, { noremap = true, buffer = true })
+      vim.keymap.set({ 'n', 'v' }, '<leader>pr', paredit.raise, { noremap = true, buffer = true })
+      vim.keymap.set('n', '<leader>>', paredit.swallow, { noremap = true, buffer = true })
+      vim.keymap.set('n', '<leader><', paredit.spew, { noremap = true, buffer = true })
 
-  vim.keymap.set('n', 'x', function()
-    if paredit.remove_block() then
-      return ""
+      vim.keymap.set('i', '<BS>', function()
+        if paredit.should_remove_block() then
+          return "<Esc>x"
+        end
+        return "<Bs>"
+      end, { remap = true, expr = true, buffer = true })
+
+      vim.keymap.set('n', 'x', function()
+        if paredit.remove_block() then
+          return ""
+        end
+        return "x"
+      end, { remap = true, expr = true, buffer = true })
     end
-    return "x"
-  end, { remap = true, expr = true })
+  })
+end
+
+local function register_clojure()
+  local repl_ui = require('languages.clojure.repl_ui')
+
+  vim.api.nvim_create_autocmd("BufEnter", {
+    pattern = "*.clj",
+    callback = function()
+      vim.keymap.set('n', '<leader>rc', repl_ui.autoconnect, { noremap = true, buffer = true })
+      vim.keymap.set('n', '<leader>rr', repl_ui.require_namespace, { noremap = true, buffer = true })
+      vim.keymap.set('n', '<leader>re', repl_ui.eval_position, { noremap = true, buffer = true })
+      vim.keymap.set('n', '<leader>ri', repl_ui.eval_input, { noremap = true, buffer = true })
+    end
+  })
 end
 
 function keybindings.register()
@@ -67,6 +88,7 @@ function keybindings.register()
   register_telescope()
   register_system_keybindings()
   register_paredit()
+  register_clojure()
 end
 
 return keybindings

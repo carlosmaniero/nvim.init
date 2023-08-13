@@ -8,11 +8,8 @@ local function highlight_lines(buffer_number, lines)
           start_col = start_col + string.len(token)
         else
           local end_col = start_col + string.len(token.value)
-          -- Apply highlighting to specific text in the buffer
-          local highlight_group = 'Boolean'
-
-          -- Add the highlight to the buffer
-          vim.api.nvim_buf_add_highlight(buffer_number, -1, token.options.highlight_group, line_number, start_col, end_col)
+          vim.api.nvim_buf_add_highlight(buffer_number, -1, token.options.highlight_group, line_number, start_col,
+            end_col)
 
           start_col = start_col + string.len(token.value)
         end
@@ -52,7 +49,7 @@ function prompt.prompt_line_create(token, highlight_group)
   if highlight_group then
     options.highlight_group = highlight_group
   end
-  return {value = token, options = options}
+  return { value = token, options = options }
 end
 
 function prompt.create(lines, options)
@@ -95,7 +92,7 @@ function prompt.create(lines, options)
   local top = math.floor((vim.api.nvim_win_get_height(current_win) - prompt_height) / 2)
   local left = math.floor((vim.api.nvim_win_get_width(current_win) - prompt_width) / 2)
 
-  local win_id = vim.api.nvim_open_win(buffer_number, true, {
+  vim.api.nvim_open_win(buffer_number, true, {
     relative = "win",
     width = prompt_width,
     height = prompt_height,
@@ -105,26 +102,29 @@ function prompt.create(lines, options)
     style = 'minimal'
   })
 
-  vim.api.nvim_set_option_value('cursorline', true, {buf = buffer_number})
+  vim.api.nvim_set_option_value('cursorline', true, { buf = buffer_number })
 
   local state = {
     selected = false
   }
 
   if options.current_line then
-    vim.api.nvim_win_set_cursor(0, {options.current_line, 0})
+    vim.api.nvim_win_set_cursor(0, { options.current_line, 0 })
   end
 
   if options.on_line_enter then
     local first_event = true
-    vim.api.nvim_create_autocmd({"CursorMoved"}, { buffer = buffer_number, callback = function ()
-      if first_event then
-        first_event = false
-        return
+    vim.api.nvim_create_autocmd({ "CursorMoved" }, {
+      buffer = buffer_number,
+      callback = function()
+        if first_event then
+          first_event = false
+          return
+        end
+        local current_line = vim.api.nvim_win_get_cursor(0)[1]
+        options.on_line_enter(current_line)
       end
-      local current_line = vim.api.nvim_win_get_cursor(0)[1]
-      options.on_line_enter(current_line)
-    end})
+    })
   end
 
   if options.on_selected then
@@ -134,34 +134,36 @@ function prompt.create(lines, options)
       local current_line = vim.api.nvim_win_get_cursor(0)[1]
       vim.cmd("bd")
       options.on_selected(current_line)
-    end, {buffer = buffer_number})
+    end, { buffer = buffer_number })
   end
 
-  vim.api.nvim_create_autocmd({"BufDelete", "WinClosed"}, { buffer = buffer_number, callback = function()
-    if not state.selected and options.on_cancel then
-      options.on_cancel()
+  vim.api.nvim_create_autocmd({ "BufDelete", "WinClosed" }, {
+    buffer = buffer_number,
+    callback = function()
+      if not state.selected and options.on_cancel then
+        options.on_cancel()
+      end
     end
-  end})
+  })
 
   -- Keybindings
   vim.keymap.set('n', 'q', function()
     vim.cmd("bd")
-  end, {buffer = buffer_number})
+  end, { buffer = buffer_number })
 
   vim.keymap.set('n', '<C-c>', function()
     vim.cmd("bd")
-  end, {buffer = buffer_number})
+  end, { buffer = buffer_number })
 
   return buffer_number
 end
 
-
 -- Simple test
 function test_create()
   lines = {
-    {"Line 1 ", prompt.prompt_line_create("Token 2", "Boolean")},
+    { "Line 1 ",                                     prompt.prompt_line_create("Token 2", "Boolean") },
     "My line 2",
-    {prompt.prompt_line_create("Line 3", "Keyword")}
+    { prompt.prompt_line_create("Line 3", "Keyword") }
   }
   options = {
     current_line = 2,

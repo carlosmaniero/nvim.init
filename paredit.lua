@@ -157,7 +157,7 @@ function CloseParenLocation(parens)
   return nil
 end
 
-function GetSurroundings()
+function paredit.get_surroundings()
   local open = OpenParenLocation(supported_parens_list)
 
   if open then
@@ -170,10 +170,42 @@ function GetSurroundings()
   return nil
 end
 
+function paredit.get_surroundings_contents()
+  local surroundings = paredit.get_surroundings()
+  local contents = ""
+
+  if not surroundings then
+    return contents
+  end
+
+  local line_number = surroundings.open.line
+
+  while line_number <= surroundings.close.line do
+    local line = vim.api.nvim_buf_get_lines(0, line_number - 1, line_number, true)[1]
+    local line_starts = 1
+    local line_ends = #line
+
+    if line_number == surroundings.open.line then
+      line_starts = surroundings.open.column
+    end
+
+    if line_number == surroundings.close.line then
+      line_ends = surroundings.close.column
+    end
+
+    line = line:sub(line_starts, line_ends)
+
+    contents = contents .. line .. '\n'
+    line_number = line_number + 1
+  end
+
+  return contents
+end
+
 function paredit.highlight_surroundings()
   vim.api.nvim_buf_clear_namespace(0, hi_namespace, 0, -1)
 
-  local surroundings = GetSurroundings()
+  local surroundings = paredit.get_surroundings()
 
   if surroundings then
     vim.api.nvim_buf_add_highlight(0, hi_namespace, 'MatchParen',
@@ -210,12 +242,12 @@ function paredit.previous_selection()
 end
 
 function paredit.next_selection()
-  local surroundings = GetSurroundings()
+  local surroundings = paredit.get_surroundings()
   if surroundings then
     if selection.compare(surroundings.open, surroundings.close) then
       go_to_next_char()
 
-      local new_surroundings = GetSurroundings()
+      local new_surroundings = paredit.get_surroundings()
 
       if new_surroundings then
         table.insert(surroundings_stack, new_surroundings)
@@ -269,7 +301,7 @@ local function is_current_close_paren()
 end
 
 function paredit.swallow()
-  local surroundings = GetSurroundings()
+  local surroundings = paredit.get_surroundings()
 
   if surroundings then
     position.go_to(surroundings.close)
@@ -283,7 +315,7 @@ function paredit.swallow()
     local swallow_until = surroundings.close
 
     if is_current_open_paren() then
-      local swallow_surroundings = GetSurroundings()
+      local swallow_surroundings = paredit.get_surroundings()
       if swallow_surroundings then
         swallow_until = swallow_surroundings.close
       end
@@ -313,7 +345,7 @@ function paredit.swallow()
 end
 
 function paredit.spew()
-  local surroundings = GetSurroundings()
+  local surroundings = paredit.get_surroundings()
 
   if surroundings then
     position.go_to(surroundings.close)
@@ -327,7 +359,7 @@ function paredit.spew()
     local swallow_until = surroundings.close
 
     if is_current_close_paren() then
-      local swallow_surroundings = GetSurroundings()
+      local swallow_surroundings = paredit.get_surroundings()
       if swallow_surroundings then
         swallow_until = swallow_surroundings.open
       end

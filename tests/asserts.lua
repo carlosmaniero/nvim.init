@@ -12,6 +12,12 @@ function asserts.string_equals(actual, expected)
   end
 end
 
+function asserts.is_nil(actual)
+  if actual ~= nil then
+    error(make_error(string.format('Expected: nil\nActual: "%s"', vim.inspect(actual)), debug.traceback()))
+  end
+end
+
 function asserts.line_equal(line_number, expected)
   local line = vim.api.nvim_buf_get_lines(0, line_number - 1, line_number, true)[1]
 

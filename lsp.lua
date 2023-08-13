@@ -57,6 +57,8 @@ function lsp.setup()
     end,
   })
 
+  -- TODO: Think in a way to move this logic to keyboard file
+  --
   -- Global mappings.
   -- See `:help vim.diagnostic.*` for documentation on any of the below functions
   vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float)
