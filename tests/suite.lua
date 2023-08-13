@@ -1,4 +1,4 @@
-local suites = { 'tests.hello_test' }
+local suites = { 'tests.hello_test', 'tests.bencode_test' }
 
 local function print_error(error)
   print("\n" .. error .. "\n")
@@ -14,17 +14,18 @@ end
 
 function RunSuite()
   local passed = true
+  print("Testing")
   for _, suite_name in ipairs(suites) do
-    print(string.format('Running the test suite %s\n\n', suite_name))
+    print(string.format('\nRunning the test suite %s\n\n', suite_name))
     local suite = require(suite_name)
 
     for name, test_fn in pairs(suite) do
-      print(string.format(' » %s...', name))
+      print(string.format(' » %s...\n', name))
 
       local ok, result = pcall(test_fn)
 
       if ok then
-        print(' passed \n')
+        print('   ✓ passed \n')
       else
         print_error(result)
         passed = false
