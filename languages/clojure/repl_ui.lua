@@ -185,6 +185,10 @@ function repl_ui.require_namespace()
   repl.require(namespace, make_eval_callback(string.format("user => (require '%s)", namespace)))
 end
 
+function repl_ui.eval_namespace()
+  eval(string.format("(use '%s :reload)", get_namespace()))
+end
+
 repl_ui.is_connected = repl.is_connected
 
 return repl_ui

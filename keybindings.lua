@@ -45,13 +45,28 @@ local function register_paredit()
   vim.api.nvim_create_autocmd("BufEnter", {
     pattern = paredit_pattern,
     callback = function()
+      local native_bindings = false
       vim.keymap.set('v', '-', paredit.previous_selection, { buffer = true })
       vim.keymap.set('v', '.', paredit.next_selection, { noremap = true, buffer = true })
       vim.keymap.set({ 'n', 'v' }, '<leader>pr', paredit.raise, { noremap = true, buffer = true })
-      vim.keymap.set('n', '<leader>>', paredit.swallow, { noremap = true, buffer = true })
-      vim.keymap.set('n', '<leader><', paredit.spew, { noremap = true, buffer = true })
+
+      vim.keymap.set('n', '<leader>>', function()
+        native_bindings = true
+        paredit.swallow()
+        native_bindings = false
+      end, { noremap = true, buffer = true })
+
+      vim.keymap.set({ 'n', 'v' }, '<leader><', function()
+        native_bindings = true
+        paredit.spew()
+        native_bindings = false
+      end, { noremap = true, buffer = true })
 
       vim.keymap.set('i', '<BS>', function()
+        if native_bindings then
+          return "<Bs>"
+        end
+
         if paredit.should_remove_block() then
           return "<Esc>x"
         end
@@ -59,6 +74,10 @@ local function register_paredit()
       end, { remap = true, expr = true, buffer = true })
 
       vim.keymap.set('n', 'x', function()
+        if native_bindings then
+          return "x"
+        end
+
         if paredit.remove_block() then
           return ""
         end
@@ -78,6 +97,7 @@ local function register_clojure()
       vim.keymap.set('n', '<leader>rr', repl_ui.require_namespace, { noremap = true, buffer = true })
       vim.keymap.set('n', '<leader>re', repl_ui.eval_position, { noremap = true, buffer = true })
       vim.keymap.set('n', '<leader>ri', repl_ui.eval_input, { noremap = true, buffer = true })
+      vim.keymap.set('n', '<leader>rl', repl_ui.eval_namespace, { noremap = true, buffer = true })
     end
   })
 end
