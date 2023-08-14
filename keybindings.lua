@@ -102,6 +102,12 @@ local function register_clojure()
   })
 end
 
+local function register_ripgrep()
+  local ripgrep = require('ripgrep')
+
+  vim.keymap.set('n', '<leader>fg', ripgrep.input, {})
+end
+
 function keybindings.register()
   register_bash_like_navigation_on_command_prompt()
   register_buffer_keybindings()
@@ -109,6 +115,7 @@ function keybindings.register()
   register_system_keybindings()
   register_paredit()
   register_clojure()
+  register_ripgrep()
 end
 
 return keybindings
